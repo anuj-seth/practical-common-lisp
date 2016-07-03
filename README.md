@@ -1,6 +1,7 @@
 # pcl
 
-A Clojure library designed to ... well, that part is up to you.
+Code from the fine book Practical Common Lisp by Peter Siebel ported to Clojure.
+This is an attempt to keep my Clojure skills up to date and sharp. 
 
 ## Usage
 
