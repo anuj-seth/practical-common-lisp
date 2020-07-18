@@ -1,1 +1,1 @@
-[#pcl.cd_db.CD["Roses", "Kathy Mattea", 7, true] #pcl.cd_db.CD["Fly", "Dixie Chicks", 8, true] #pcl.cd_db.CD["Home", "Dixie Chicks", 9, true]]
+[#pcl.cd_db.CD["hello", "world", #=(java.lang.Integer. "8"), true] #pcl.cd_db.CD["cool rain", "guns & roses", #=(java.lang.Integer. "7"), true]]

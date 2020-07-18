@@ -3,14 +3,15 @@
 
 (defrecord CD [title artist rating ripped?])
 
-(def cd-db (atom []))
+(defonce cd-db (atom []))
 
 (defn save-db
   "Print a data structure to a file so that we may read it in later."
   [data-structure #^String filename]
   (with-open [w (io/writer filename)]
     (.write w
-            (binding [*print-dup* true] (prn-str @data-structure)))))
+            (binding [*print-dup* true]
+              (prn-str data-structure)))))
 
 (defn load-db
   [filename]
@@ -34,18 +35,27 @@
 
 (defn prompt-read
   [prompt]
+  (print prompt)
   (flush)
   (read-line))
+
+(defn until-matches-pattern
+  [prompt pattern wrong-input-message]
+  (let [input (clojure.string/lower-case (prompt-read prompt))]
+    (if (re-matches pattern input)
+      input
+      (do
+        (println wrong-input-message)
+        (recur prompt
+               pattern
+               wrong-input-message)))))
 
 (defn y-or-n-p
   [prompt]
   (= "y"
-     (loop []
-       (let [input (clojure.string/lower-case (prompt-read prompt))]
-         (or (re-matches #"[yn]" input)
-             (do
-               (println "Please press Y or N")
-               (recur)))))))
+     (until-matches-pattern prompt
+                            #"[yn]"
+                            "Please press Y or N")))
 
 (defn prompt-for-cd
   []
@@ -56,16 +66,16 @@
 
 (defn add-cds
   []
-  (loop []
-    (add-record (prompt-for-cd))
-    (if (y-or-n-p "Another? [y/n]")
-      (recur))))
+  (add-record (prompt-for-cd))
+  (if (y-or-n-p "Another? [y/n]")
+    (recur)))
 
 (defn where
-  [& {:keys [artist title rating ripped] :as where-clauses}]
+  [& where-clauses]
   (fn [record]
     (every? identity
-            (for [[k v] where-clauses]
+            (for [[k v] (partition 2
+                                   where-clauses)]
               (= (k record) v)))))
 
 (defn select
@@ -84,31 +94,35 @@
   (swap! cd-db (fn [current-value] 
                  (vec (remove selector-fn current-value)))))
 
-;;(add-record (make-cd "Roses" "Kathy Mattea" 7 true))
-;;(add-record (make-cd "Fly" "Dixie Chicks" 8 true))
-;;(add-record (make-cd "Home" "Dixie Chicks" 9 true))
+(comment
 
-(dump-db)
+  ;;(add-record (make-cd "Roses" "Kathy Mattea" 7 true))
+  ;;(add-record (make-cd "Fly" "Dixie Chicks" 8 true))
+  ;;(add-record (make-cd "Home" "Dixie Chicks" 9 true))
 
-;; (add-cds)
+  (dump-db)
 
-;;(prn @cd-db)
+  ;; (add-cds)
 
-;;(save-db cd-db "test.db")
+  ;;(prn @cd-db)
+
+  ;;(save-db cd-db "test.db")
 
 
-(count (load-db "test.db"))
+  (count (load-db "test.db"))
 
-(prn @cd-db)
+  (prn @cd-db)
 
-cd-db
-(prn (select (where :artist "Dixie Chicks")))
+  cd-db
+  (prn (select (where :artist "Dixie Chicks")))
 
-(select (where :title "Roses" :ripped? false))
+  (select (where :title "Roses" :ripped? false))
 
-;;(update (where :title "Roses" :ripped? true) :ripped? false)
+  ;;(update (where :title "Roses" :ripped? true) :ripped? false)
 
-(delete (where :title "Roses" :ripped? true))
+  (delete (where :title "Roses" :ripped? true))
+
+  )
 
 
 
