@@ -1,5 +1,6 @@
-(ns pcl.cd-db
-  (:require [clojure.java.io :as io]))
+(ns pcl.chapter-1.cd-db
+  (:require [clojure.java.io :as io]
+            [clojure.string :as string]))
 
 (defrecord CD [title artist rating ripped?])
 
@@ -15,8 +16,8 @@
 
 (defn load-db
   [filename]
-  (reset! cd-db (with-open [r (java.io.PushbackReader. (io/reader filename))]
-                  (read r))))
+  (with-open [r (java.io.PushbackReader. (io/reader filename))]
+    (reset! cd-db (read r))))
 
 (defn make-cd
   [title artist rating ripped]
@@ -30,7 +31,7 @@
   []
   (doseq [cd @cd-db]
     (doseq [[k v] cd]
-      (println (str (clojure.string/upper-case (name k)) ": " v)))
+      (println (str (string/upper-case (name k)) ": " v)))
     (println)))
 
 (defn prompt-read
@@ -41,7 +42,7 @@
 
 (defn until-matches-pattern
   [prompt pattern wrong-input-message]
-  (let [input (clojure.string/lower-case (prompt-read prompt))]
+  (let [input (string/lower-case (prompt-read prompt))]
     (if (re-matches pattern input)
       input
       (do
@@ -71,11 +72,10 @@
     (recur)))
 
 (defn where
-  [& where-clauses]
+  [& {:as where-clauses}]
   (fn [record]
     (every? identity
-            (for [[k v] (partition 2
-                                   where-clauses)]
+            (for [[k v] where-clauses]
               (= (k record) v)))))
 
 (defn select
@@ -85,28 +85,29 @@
 (defn update
   [selector-fn & {:keys [artist title rating ripped] :as update-cd}]
   (swap! cd-db (fn [current-value] 
-                 (vec (map #(if (selector-fn %)
-                              (merge % update-cd)
-                              %) current-value)))))
+                 (map #(if (selector-fn %)
+                         (merge % update-cd)
+                         %)
+                      current-value))))
 
 (defn delete
   [selector-fn]
   (swap! cd-db (fn [current-value] 
-                 (vec (remove selector-fn current-value)))))
+                 (remove selector-fn current-value))))
 
 (comment
 
-  ;;(add-record (make-cd "Roses" "Kathy Mattea" 7 true))
-  ;;(add-record (make-cd "Fly" "Dixie Chicks" 8 true))
-  ;;(add-record (make-cd "Home" "Dixie Chicks" 9 true))
+  (add-record (make-cd "Roses" "Kathy Mattea" 7 true))
+  (add-record (make-cd "Fly" "Dixie Chicks" 8 true))
+  (add-record (make-cd "Home" "Dixie Chicks" 9 true))
 
   (dump-db)
 
-  ;; (add-cds)
+  (add-cds)
 
-  ;;(prn @cd-db)
+  (prn @cd-db)
 
-  ;;(save-db cd-db "test.db")
+  (save-db @cd-db "test.db")
 
 
   (count (load-db "test.db"))
@@ -118,9 +119,15 @@
 
   (select (where :title "Roses" :ripped? false))
 
-  ;;(update (where :title "Roses" :ripped? true) :ripped? false)
+  (select (where :title "Fly" :ripped? true))
 
-  (delete (where :title "Roses" :ripped? true))
+  (update (where :title "Roses" :ripped? true) :ripped? false)
+
+  (delete (where :title "Roses" :ripped? false))
+
+  (delete (where :title "Fly" :ripped? true))
+
+  (delete (where :title "Home" :ripped? true))
 
   )
 
