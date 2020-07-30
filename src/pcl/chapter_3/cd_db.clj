@@ -1,10 +1,8 @@
-(ns pcl.chapter-1.cd-db
+(ns pcl.chapter-3.cd-db
   (:require [clojure.java.io :as io]
             [clojure.string :as string]))
 
-(defrecord CD [title artist rating ripped?])
-
-(defonce cd-db (atom []))
+(def cd-db (atom []))
 
 (defn save-db
   "Print a data structure to a file so that we may read it in later."
@@ -21,7 +19,10 @@
 
 (defn make-cd
   [title artist rating ripped]
-  (CD. title artist rating ripped))
+  {:title title
+   :artist artist
+   :rating rating
+   :ripped? ripped})
 
 (defn add-record
   [cd]
@@ -72,11 +73,20 @@
     (recur)))
 
 (defn where
-  [& {:as where-clauses}]
+  [& {:keys [artist title rating ripped?] :as clauses}]
   (fn [record]
-    (every? identity
-            (for [[k v] where-clauses]
-              (= (k record) v)))))
+    (and (if (nil? artist) true (= (:artist record) artist))
+         (if (nil? title) true (= (:title record) title))
+         (if (nil? rating) true (= (:rating record) rating))
+         (if (nil? ripped?) true (= (:ripped? record) ripped?)))))
+
+(defn where
+  [& {:keys [artist title rating ripped?] :as clauses}]
+  (fn [record]
+    (and (or (nil? artist) (= (:artist record) artist))
+         (or (nil? title) (= (:title record) title))
+         (or (nil? rating) (= (:rating record) rating))
+         (or (nil? ripped?) (= (:ripped? record) ripped?)))))
 
 (defn select
   [selector-fn]
@@ -117,7 +127,7 @@
   cd-db
   (prn (select (where :artist "Dixie Chicks")))
 
-  (select (where :title "Roses" :ripped? false))
+  (select (where :title "Roses" :ripped? true))
 
   (select (where :title "Fly" :ripped? true))
 
