@@ -20,12 +20,19 @@
      (and ~@(for [[k# v#] (partition 2 clauses)]
               `(= ~v# (~k# ~'record))))))
 
+(defmacro where
+  [& clauses]
+  (let [args (gensym)]
+    `(fn [~args]
+       (and ~@(for [[k# v#] (partition 2 clauses)]
+                `(= ~v# (~k# ~args)))))))
+
 (comment 
   (let [record 1
         a 5]
     ((where :a 2) {:a 1 :b 2}))
 
-  (let [record 1]
+  (let [args 1]
     (macroexpand-1 '(where :a 2 :b 1)))
 
   (partition 2

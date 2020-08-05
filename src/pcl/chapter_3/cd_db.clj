@@ -72,21 +72,21 @@
   (if (y-or-n-p "Another? [y/n]")
     (recur)))
 
-(defn where
-  [& {:keys [artist title rating ripped?] :as clauses}]
-  (fn [record]
-    (and (if (nil? artist) true (= (:artist record) artist))
-         (if (nil? title) true (= (:title record) title))
-         (if (nil? rating) true (= (:rating record) rating))
-         (if (nil? ripped?) true (= (:ripped? record) ripped?)))))
+;; (defn where
+;;   [& {:keys [artist title rating ripped?] :or {ripped? :not-set}}]
+;;   (fn [record]
+;;     (and (if (nil? artist) true (= (:artist record) artist))
+;;          (if (nil? title) true (= (:title record) title))
+;;          (if (nil? rating) true (= (:rating record) rating))
+;;          (if (= ripped? :not-set) true (= (:ripped? record) ripped?)))))
 
 (defn where
-  [& {:keys [artist title rating ripped?] :as clauses}]
+  [& {:keys [artist title rating ripped?] :or {ripped? :not-set} :as clauses}]
   (fn [record]
     (and (or (nil? artist) (= (:artist record) artist))
          (or (nil? title) (= (:title record) title))
          (or (nil? rating) (= (:rating record) rating))
-         (or (nil? ripped?) (= (:ripped? record) ripped?)))))
+         (or (= ripped? :not-set) (= (:ripped? record) ripped?)))))
 
 (defn select
   [selector-fn]
