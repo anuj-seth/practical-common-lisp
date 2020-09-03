@@ -1,9 +1,11 @@
 (ns pcl.chapter-9.ekal-parikshan
   (:require [clojure.pprint :as pprint]))
 
+(def ^:dynamic *test-name* [])
+
 (defn report-result
   [result form]
-  (pprint/cl-format true "~:[FAIL~;pass~] ... ~a~%" result form)
+  (pprint/cl-format true "~:[FAIL~;pass~] ... ~a: ~a~%" result *test-name* form)
   result)
 
 (defn combine-results
@@ -15,32 +17,33 @@
   `(combine-results ~@(for [form forms]
                         `(report-result ~form '~form))))
 
-(defn test-+
-  []
-  (check (= (+ 1 2) 3)
-         (= (+ 1 2 3) 6)
-         (= (+ -1 -3) -4)
-         ;;(= (+ 1 2) 4)
-         (true? (= 1 1))))
+(defmacro deftest
+  [name & body]
+  (println &form)
+  (println &env)
+  `(defn ~name
+     []
+     (binding [*test-name* (conj *test-name* '~name)]
+       ~@body)))
 
-(defn test-*
-  []
-  (check (= (* 1 2) 2)
-         (= (* 1 2 3) 6)
-         (= (* -1 -3) 3)
-         (= (* 1 2) 4)))
+(comment 
+  (macroexpand-1 '(check (= (+ 1 2) 3)
+                         (true? (= 1 1))))
 
-(defn test-arithmetic
-  []
-  (combine-results (test-+)
-                   (test-*)))
 
-(macroexpand-1 '(check (= (+ 1 2) 3)
-                       (true? (= 1 1))))
+  (macroexpand-1 '(deftest test-macro
+                    (check (= (+ 1 2) 3))))
 
-;;(check (= (+ 1 2) 3))
-(test-+)
+  (macroexpand '(deftest test-macro
+                  (check (= (+ 1 2) 3))))
 
-(test-*)
+  (deftest test-macro
+    (check (= (+ 1 2) 3)))
 
-(test-arithmetic)
+  (fn? combine-results)
+  (fn? test-macro)
+
+  (instance? clojure.lang.Symbol 'combine-results)
+  (instance? clojure.lang.Symbol 'deftest)
+
+  )

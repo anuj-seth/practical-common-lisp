@@ -28,7 +28,7 @@
 
 (macroexpand-1 '(where :a 1))
 
-((where :a 1) {:a 2})
+(macroexpand-1 '(where :a 1))
 
 (macroexpand-1 '(with-gensyms [args]
                   `(fn [~args]
