@@ -18,10 +18,15 @@
             repeat)
        (rest csv-data)))
 
+(defmacro delete-duplicates
+  [s]
+  `(into #{} ~s))
+
 (defn extract-words
   [text]
-  
-  )
+  (delete-duplicates
+   (re-seq #"[a-zA-Z]{3,}" text)))
+
 
 (defn lazy-read-csv
   [csv-file]
@@ -34,18 +39,23 @@
                   (.close in-file))))]
     (lazy csv-seq)))
 
-;;(take 5 (map :spam (csv-data->map (lazy-read-csv (io/resource "emails.csv")))))
-
-(with-open [r (io/reader (io/resource "emails.csv"))]
-  (doall 
-   (take 5 (csv-data->map (csv/read-csv r)))))
 
 (defn score
   [_]
   )
 
+(defn intern-feature
+  [word]
+  (let [add-if-not-exists (fn [m k]
+                            (if (contains? m k)
+                              m
+                              (assoc m k (->WordFeature k 0 0))))]
+    (swap! feature-database
+           #(add-if-not-exists % word))))
+
 (defn extract-features
-  [_])
+  [text]
+  (map intern-feature (extract-words text)))
 
 (defn classification
   [score]
@@ -57,3 +67,35 @@
 (defn classify
   [text]
   (classification (score (extract-features text))))
+
+(comment 
+  (count (keys @feature-database))
+  (reset! feature-database {})
+  (intern-feature "hello")
+  (intern-feature "hell")
+
+  (frequencies (extract-words "hello world hello hell"))
+
+  ;;(take 5 (map :spam (csv-data->map (lazy-read-csv (io/resource "emails.csv")))))
+
+  (with-open [r (io/reader (io/resource "emails.csv"))]
+    (frequencies 
+     (mapcat (comp extract-words :text)
+             (csv-data->map (csv/read-csv r)))))
+
+  (with-open [r (io/reader (io/resource "emails.csv"))]
+    (dorun
+     (map (comp extract-features :text)
+          (csv-data->map (csv/read-csv r)))))
+
+  (with-open [r (io/reader (io/resource "emails.csv"))]
+    (let [words (csv-data->map (csv/read-csv r))]
+      (first words)))
+
+  (dorun
+   (map (fn [x] (println "func called ") (map println x)) [[1 2 3] [4 5 6]]))
+
+  (doall
+   (map (fn [x] (map println x)) [[1 2 3] [4 5 6]]))
+
+  )
