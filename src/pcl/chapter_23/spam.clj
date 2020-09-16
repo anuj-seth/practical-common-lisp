@@ -55,7 +55,9 @@
 
 (defn extract-features
   [text]
-  (map intern-feature (extract-words text)))
+  ;;(map intern-feature (extract-words text)
+  (doseq [word (extract-words text)]
+    (intern-feature word)))
 
 (defn classification
   [score]
@@ -87,6 +89,10 @@
     (dorun
      (map (comp extract-features :text)
           (csv-data->map (csv/read-csv r)))))
+
+  (with-open [r (io/reader (io/resource "emails.csv"))]
+    (doseq [line (csv-data->map (csv/read-csv r))]
+      (extract-features (:text line))))
 
   (with-open [r (io/reader (io/resource "emails.csv"))]
     (let [words (csv-data->map (csv/read-csv r))]
