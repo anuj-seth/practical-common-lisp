@@ -98,10 +98,26 @@
     (let [words (csv-data->map (csv/read-csv r))]
       (first words)))
 
-  (dorun
-   (map (fn [x] (println "func called ") (map println x)) [[1 2 3] [4 5 6]]))
+  (def y (dorun
+          (map (fn [x] (map println x))
+               [[1 2 3] [4 5 6]])))
 
-  (doall
-   (map (fn [x] (map println x)) [[1 2 3] [4 5 6]]))
+  (def y (doall (map println [[1 2 3] [4 5 6]])))
+
+  (def x (doall
+          (map (fn [x] (map println x))
+               [[1 2 3] [4 5 6]])))
+
+  (doall (map (fn [x] (map println x)) [[1 2 3] [4 5 6]]))
+
+  (def y (doall (map #(doseq [elt %]
+                        (println elt))
+                     [[1 2 3] [4 5 6]])))
+
+  (dorun (map (fn [x] (map println x)) [[1 2 3] [4 5 6]]))
+
+  (def z (doall (map (fn [x]
+                       (map #(+ @a %) x))
+                     [[1 2 3] [4 5 6]])))
 
   )
