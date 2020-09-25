@@ -2,13 +2,10 @@
   (:require [clojure.java.io :as io]
             [clojure.data.csv :as csv]))
 
-
 (defonce max-ham-score 0.4)
 (defonce min-spam-score 0.6)
 
 (def feature-database (atom {}))
-
-(defrecord WordFeature [word spam-count ham-count])
 
 (defn csv-data->map
   [csv-data]
@@ -27,7 +24,6 @@
   (delete-duplicates
    (re-seq #"[a-zA-Z]{3,}" text)))
 
-
 (defn lazy-read-csv
   [csv-file]
   (let [in-file (io/reader csv-file)
@@ -39,7 +35,6 @@
                   (.close in-file))))]
     (lazy csv-seq)))
 
-
 (defn score
   [_]
   )
@@ -49,15 +44,28 @@
   (let [add-if-not-exists (fn [m k]
                             (if (contains? m k)
                               m
-                              (assoc m k (->WordFeature k 0 0))))]
+                              (assoc m k
+                                     {:word k :spam-count 0 :ham-count 0})))]
     (swap! feature-database
            #(add-if-not-exists % word))))
 
 (defn extract-features
   [text]
-  ;;(map intern-feature (extract-words text)
   (doseq [word (extract-words text)]
     (intern-feature word)))
+
+(defn increment-count
+  [word spam?]
+  (let [k (if spam? :spam-count :ham-count)]
+    (swap! feature-database
+           #(update-in % [word k] inc))))
+
+(defn train
+  [text spam-or-ham]
+  (let [spam? (= "1" spam-or-ham)]
+    (doseq [word (extract-words text)]
+      (intern-feature word)
+      (increment-count word spam?))))
 
 (defn classification
   [score]
@@ -96,28 +104,10 @@
 
   (with-open [r (io/reader (io/resource "emails.csv"))]
     (let [words (csv-data->map (csv/read-csv r))]
-      (first words)))
+      (frequencies (map :spam words))))
 
-  (def y (dorun
-          (map (fn [x] (map println x))
-               [[1 2 3] [4 5 6]])))
-
-  (def y (doall (map println [[1 2 3] [4 5 6]])))
-
-  (def x (doall
-          (map (fn [x] (map println x))
-               [[1 2 3] [4 5 6]])))
-
-  (doall (map (fn [x] (map println x)) [[1 2 3] [4 5 6]]))
-
-  (def y (doall (map #(doseq [elt %]
-                        (println elt))
-                     [[1 2 3] [4 5 6]])))
-
-  (dorun (map (fn [x] (map println x)) [[1 2 3] [4 5 6]]))
-
-  (def z (doall (map (fn [x]
-                       (map #(+ @a %) x))
-                     [[1 2 3] [4 5 6]])))
+  (train "hell" "1")
+  (train "world" "0")
+  (reset! feature-database {})
 
   )
