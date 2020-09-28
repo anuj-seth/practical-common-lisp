@@ -7,6 +7,22 @@
 
 (def feature-database (atom {}))
 
+(defmulti resource-reader (fn [file-name file-type] file-type))
+
+(defmethod resource-reader :gzip
+  [file-name _]
+  (->> file-name
+       io/resource
+       io/input-stream
+       java.util.zip.GZIPInputStream.
+       io/reader))
+
+(defmethod resource-reader :default
+  [file-name _]
+  (->> file-name
+       io/resource
+       io/reader))
+
 (defn csv-data->map
   [csv-data]
   (map zipmap
@@ -88,6 +104,9 @@
 
   ;;(take 5 (map :spam (csv-data->map (lazy-read-csv (io/resource "emails.csv")))))
 
+  (with-open [r (resource-reader "emails.csv.gz" :gzip)]
+    (first (csv/read-csv r)))
+
   (with-open [r (io/reader (io/resource "emails.csv"))]
     (frequencies 
      (mapcat (comp extract-words :text)
@@ -98,13 +117,13 @@
      (map (comp extract-features :text)
           (csv-data->map (csv/read-csv r)))))
 
-  (with-open [r (io/reader (io/resource "emails.csv"))]
+  (with-open [r (resource-reader "emails.csv.gz" :gzip)]
     (doseq [line (csv-data->map (csv/read-csv r))]
       (extract-features (:text line))))
 
-  (with-open [r (io/reader (io/resource "emails.csv"))]
-    (let [words (csv-data->map (csv/read-csv r))]
-      (frequencies (map :spam words))))
+  (with-open [r (resource-reader "emails.csv.gz" :gzip)]
+    (doseq [line (csv-data->map (csv/read-csv r))]
+      (train (:text line) (:spam line))))
 
   (train "hell" "1")
   (train "world" "0")
