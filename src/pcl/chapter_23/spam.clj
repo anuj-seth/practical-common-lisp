@@ -9,24 +9,26 @@
                              :total-hams 0
                              :features {}}))
 
+
 (defn update-counts-by-key
   [features-db word word-key totals-key]
-  (update-in features-db
-             [:features word word-key]
-             inc)
-  (update features-db total-key inc))
+  (update (update-in features-db
+                     [:features word word-key]
+                     inc)
+          totals-key
+          inc))
 
-(defmulti update-counts (fn [classification _] classification))
+(defmulti update-counts (fn [_ classification _] classification))
 
 (defmethod update-counts :spam
-  [_ features-db word]
+  [features-db _ word]
   (update-counts-by-key features-db
                         word
                         :spam-count
                         :total-spams))
 
 (defmethod update-counts :ham
-  [_ features-db word]
+  [features-db _ word]
   (update-counts-by-key features-db
                         word
                         :ham-count
@@ -94,10 +96,9 @@
                               (assoc m k
                                      {:word k :spam-count 0 :ham-count 0})))]
     (swap! feature-database
-           (fn [f-db]
-             (update f-db
-                     :features
-                     #(add-if-not-exists % word))))))
+           update
+           :features
+           #(add-if-not-exists % word))))
 
 (defn extract-features
   [text]
@@ -108,8 +109,8 @@
   [word spam?]
   (swap! feature-database
          update-counts
-         word
-         (if spam? :spam :ham)))
+         (if spam? :spam :ham)
+         word))
 
 (defn train
   [text spam-or-ham]
@@ -130,7 +131,8 @@
   (classification (score (extract-features text))))
 
 (comment 
-  (count (keys @feature-database))
+  ((juxt :total-spams :total-hams) @feature-database)
+  (count (:features @feature-database))
   (reset! feature-database {})
   (intern-feature "hello")
   (intern-feature "hell")
@@ -163,5 +165,11 @@
   (train "hell" "1")
   (train "world" "0")
   (reset! feature-database {})
+
+  (reduce (fn [{:keys [total-spams total-hams]} [_ {:keys [spam-count ham-count]}]]
+            {:total-spams (+ spam-count total-spams)
+             :total-hams (+ ham-count total-hams)})
+          {:total-spams 0 :total-hams 0}
+          (:features @feature-database))
 
   )
