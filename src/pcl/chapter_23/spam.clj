@@ -5,7 +5,32 @@
 (defonce max-ham-score 0.4)
 (defonce min-spam-score 0.6)
 
-(def feature-database (atom {}))
+(def feature-database (atom {:total-spams 0
+                             :total-hams 0
+                             :features {}}))
+
+(defn update-counts-by-key
+  [features-db word word-key totals-key]
+  (update-in features-db
+             [:features word word-key]
+             inc)
+  (update features-db total-key inc))
+
+(defmulti update-counts (fn [classification _] classification))
+
+(defmethod update-counts :spam
+  [_ features-db word]
+  (update-counts-by-key features-db
+                        word
+                        :spam-count
+                        :total-spams))
+
+(defmethod update-counts :ham
+  [_ features-db word]
+  (update-counts-by-key features-db
+                        word
+                        :ham-count
+                        :total-hams))
 
 (defmulti resource-reader (fn [file-name file-type] file-type))
 
@@ -17,11 +42,17 @@
        java.util.zip.GZIPInputStream.
        io/reader))
 
-(defmethod resource-reader :default
+(defmethod resource-reader :txt
   [file-name _]
   (->> file-name
        io/resource
        io/reader))
+
+(defmethod resource-reader :default
+  [file-name file-type]
+  (throw (ex-info "Unsupported file type"
+                  {:file-name file-name
+                   :file-type file-type})))
 
 (defn csv-data->map
   [csv-data]
@@ -63,7 +94,10 @@
                               (assoc m k
                                      {:word k :spam-count 0 :ham-count 0})))]
     (swap! feature-database
-           #(add-if-not-exists % word))))
+           (fn [f-db]
+             (update f-db
+                     :features
+                     #(add-if-not-exists % word))))))
 
 (defn extract-features
   [text]
@@ -72,9 +106,10 @@
 
 (defn increment-count
   [word spam?]
-  (let [k (if spam? :spam-count :ham-count)]
-    (swap! feature-database
-           #(update-in % [word k] inc))))
+  (swap! feature-database
+         update-counts
+         word
+         (if spam? :spam :ham)))
 
 (defn train
   [text spam-or-ham]
@@ -107,7 +142,7 @@
   (with-open [r (resource-reader "emails.csv.gz" :gzip)]
     (first (csv/read-csv r)))
 
-  (with-open [r (io/reader (io/resource "emails.csv"))]
+  (with-open [r (resource-reader "emails.csv" :csv)]
     (frequencies 
      (mapcat (comp extract-words :text)
              (csv-data->map (csv/read-csv r)))))
