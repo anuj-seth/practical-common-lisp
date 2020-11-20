@@ -9,8 +9,7 @@
                              :total-hams 0
                              :features {}}))
 
-
-(defn update-counts-by-key
+(defn inc-counts-by-key
   [features-db word word-key totals-key]
   (update (update-in features-db
                      [:features word word-key]
@@ -22,17 +21,19 @@
 
 (defmethod update-counts :spam
   [features-db _ word]
-  (update-counts-by-key features-db
-                        word
-                        :spam-count
-                        :total-spams))
+  (-> features-db
+      (update-in [:features word :spam-count]
+                 inc)
+      (update :total-spams
+              inc)))
 
 (defmethod update-counts :ham
   [features-db _ word]
-  (update-counts-by-key features-db
-                        word
-                        :ham-count
-                        :total-hams))
+  (-> features-db
+      (update-in [:features word :ham-count]
+                 inc)
+      (update :total-hams
+              inc)))
 
 (defmulti resource-reader (fn [file-name file-type] file-type))
 
@@ -144,7 +145,7 @@
   (with-open [r (resource-reader "emails.csv.gz" :gzip)]
     (first (csv/read-csv r)))
 
-  (with-open [r (resource-reader "emails.csv" :csv)]
+  (with-open [r (resource-reader "emails.csv" :txt)]
     (frequencies 
      (mapcat (comp extract-words :text)
              (csv-data->map (csv/read-csv r)))))
